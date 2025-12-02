@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Pro - Stable Version</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src='https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* --- Style Dasar & Dark Mode --- */
+        :root { --bg-color: #f5f7fa; --box-bg: #ffffff; --text-color: #363636; --border-color: #dbdbdb; --upload-bg: #fdfdfd; }
+        body.dark-mode { --bg-color: #1a1b1e; --box-bg: #2c2e33; --text-color: #e0e0e0; --border-color: #4a4a4a; --upload-bg: #25262b; }
+        body { background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s; min-height: 100vh; }
+        .box { background-color: var(--box-bg); color: var(--text-color); transition: background-color 0.3s; }
+        .title, .subtitle, .label, strong { color: var(--text-color) !important; }
+        
+        /* Upload Zone Style */
+        .upload-zone {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 2px dashed #3298dc; border-radius: 12px; padding: 2.5rem;
+            cursor: pointer; background-color: var(--upload-bg); transition: all 0.3s; width: 100%; box-sizing: border-box;
+            position: relative; /* Penting untuk klik */
+        }
+        .upload-zone:hover { background-color: rgba(50, 152, 220, 0.05); border-color: #205e8e; }
+        
+        /* Efek Drag & Drop */
+        .upload-zone.is-dragover {
+            background-color: rgba(72, 199, 116, 0.1) !important;
+            border-color: #48c774 !important;
+            transform: scale(1.02);
+        }
+
+        body.dark-mode .upload-zone:hover { background-color: rgba(50, 152, 220, 0.1); }
+
+        .switch-wrapper { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch-wrapper input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #48c774; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        #result-text { min-height: 200px; max-height: 600px; font-family: 'Consolas', monospace; font-size: 0.9em; background-color: var(--bg-color); color: var(--text-color); border-color: var(--border-color); }
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #image-preview { max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); display: none; margin: 0 auto; }
+        .stats-tag { margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="box shadow-lg fade-in">
+                <div class="level is-mobile mb-5 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                    <div class="level-left">
+                        <div>
+                            <p class="title is-4">
+                                <span class="icon-text has-text-info mr-2"><i class="fas fa-robot"></i></span>
+                                OCR Pro <span class="tag is-success is-light ml-2">Stable v5</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="buttons are-small">
+                            <button id="reset-button" class="button is-rounded is-light" title="Reset">
+                                <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                            </button>
+                            <div class="ml-3" style="display:flex; align-items:center;">
+                                <label class="switch-wrapper" title="Mode Gelap">
+                                    <input type="checkbox" id="dark-mode-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="subtitle is-6 has-text-grey mb-4">
+                    Unggah gambar/PDF. Gunakan <span class="tag is-info is-light">Ctrl + V</span> untuk paste screenshot.
+                </p>
+
+                <div class="field">
+                    <div class="upload-zone" id="drop-zone">
+                        <span class="icon is-large has-text-link mb-2"><i class="fas fa-cloud-upload-alt fa-3x"></i></span>
+                        <p class="is-size-5 has-text-weight-medium mt-2">Klik atau Tarik File Kesini</p>
+                        <p id="file-name" class="is-size-7 has-text-grey mt-1">Belum ada file dipilih</p>
+                        <input type="file" id="uploader" accept="image/*,application/pdf" style="display:none;" />
+                    </div>
+                </div>
+
+                <div id="preview-section" class="block has-text-centered mt-4" style="display: none;">
+                    <img id="image-preview" src="#" alt="Preview" />
+                </div>
+
+                <div id="status-box" class="notification is-info is-light mt-5">
+                    <div class="icon-text">
+                        <span class="icon"><i class="fas fa-info-circle"></i></span>
+                        <span id="status-text">Siap memproses dokumen...</span>
+                    </div>
+                </div>
+
+                <div id="result-section" class="mt-6 fade-in" style="display: none;">
+                    <div class="level is-mobile mb-2">
+                        <div class="level-left"><h3 class="title is-5 mb-0">Hasil Teks</h3></div>
+                        <div class="level-right">
+                            <button id="copy-button" class="button is-small is-link is-outlined is-rounded">
+                                <span class="icon"><i class="far fa-copy"></i></span>
+                                <span id="copy-text">Salin</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control">
+                        <textarea id="result-text" class="textarea" readonly placeholder="Hasil akan muncul di sini..."></textarea>
+                    </div>
+
+                    <div id="post-result-actions" class="level mt-4 is-mobile">
+                        <div class="level-left">
+                            <div id="text-stats" class="tags"></div>
+                        </div>
+                        <div class="level-right">
+                            <button id="download-button" class="button is-primary is-small is-rounded shadow-sm">
+                                <span class="icon"><i class="fas fa-download"></i></span>
+                                <span>Download .txt</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="has-text-centered is-size-7 has-text-grey-light mt-4">Powered by Tesseract.js & Smart Regex</p>
+        </div>
+    </section>
+
+    <script>
+        // Konfigurasi Worker PDF.js (WAJIB ADA)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Element Selectors
+        const uploader = document.getElementById('uploader');
+        const dropZone = document.getElementById('drop-zone');
+        const fileNameDisplay = document.getElementById('file-name');
+        const statusBox = document.getElementById('status-box');
+        const statusText = document.getElementById('status-text');
+        const statusIcon = statusBox.querySelector('.icon i');
+        const imagePreview = document.getElementById('image-preview');
+        const previewSection = document.getElementById('preview-section');
+        const resultSection = document.getElementById('result-section');
+        const resultText = document.getElementById('result-text');
+        const copyButton = document.getElementById('copy-button');
+        const downloadButton = document.getElementById('download-button');
+        const resetButton = document.getElementById('reset-button');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const textStats = document.getElementById('text-stats');
+        
+        let currentFileName = 'hasil_ocr.txt';
+
+        // --- HANDLER KLIK & DRAG (FIXED) ---
+        // 1. Klik area -> Trigger input file
+        dropZone.addEventListener('click', () => {
+            uploader.click();
+        });
+
+        // 2. Drag & Drop Visual
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('is-dragover'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('is-dragover'), false);
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if(files.length > 0) handleFile(files[0]);
+        });
+        
+        // 3. Input Change (Saat file dipilih dari dialog)
+        uploader.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+        // -----------------------------------
+
+        // --- KAMUS PERBAIKAN TYPO ---
+        const cleanOCRText = (text) => {
+            let cleaned = text;
+            
+            cleaned = cleaned.replace(/\b([CDE]):\s*[l|I|i|\|/]\s*/g, "$1:\\"); 
+            cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*etc/gi, "Snort\\etc"); 
+            cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*bin/gi, "Snort\\bin"); 
+            cleaned = cleaned.replace(/C\s*[l|I|i|\|/]\s*Snort/gi, "C:\\Snort"); 
+            
+            cleaned = cleaned.replace(/fi\\e/g, "file");   
+            cleaned = cleaned.replace(/ru\\es/g, "rules"); 
+            cleaned = cleaned.replace(/ru\|es/g, "rules"); 
+            cleaned = cleaned.replace(/modu\\/g, "modul"); 
+            cleaned = cleaned.replace(/KONFIGURAS\\/g, "KONFIGURASI"); 
+
+            cleaned = cleaned.replace(/([a-z])1([a-z])/g, "$1l$2"); 
+            cleaned = cleaned.replace(/([a-z])0([a-z])/g, "$1o$2"); 
+            
+            cleaned = cleaned.replace(/SNCRT/gi, "SNORT");
+            cleaned = cleaned.replace(/snert/gi, "snort");
+            cleaned = cleaned.replace(/1D5/g, "IDS");
+            cleaned = cleaned.replace(/1DS/g, "IDS");
+            cleaned = cleaned.replace(/30\s*rules/gi, "so_rules");
+            cleaned = cleaned.replace(/so\s+ru\\es/gi, "so_rules"); 
+            cleaned = cleaned.replace(/so\s+rules/gi, "so_rules");  
+            cleaned = cleaned.replace(/preproc\s*rules/gi, "preproc_rules");
+
+            return cleaned;
+        };
+
+        const updateStatus = (message, type = 'info') => {
+            statusText.textContent = message;
+            statusBox.className = 'notification mt-5'; statusIcon.className = '';
+            const types = { 
+                info: ['is-info', 'is-light', 'fa-info-circle'], 
+                success: ['is-success', 'is-light', 'fa-check-circle'], 
+                error: ['is-danger', 'is-light', 'fa-exclamation-triangle'], 
+                loading: ['is-warning', 'is-light', 'fa-spinner', 'fa-spin'] 
+            };
+            const t = types[type] || types.info;
+            statusBox.classList.add(t[0], t[1]); statusIcon.classList.add('fas', t[2], ...(type === 'loading' ? ['fa-spin'] : []));
+        };
+
+        const resetUI = () => {
+            uploader.value = ''; resultSection.style.display = 'none'; previewSection.style.display = 'none';
+            resultText.value = ''; fileNameDisplay.textContent = 'Belum ada file dipilih';
+            updateStatus('Siap memproses dokumen...', 'info');
+        };
+
+        const processImage = async (file) => {
+            previewSection.style.display = 'block';
+            const imgUrl = URL.createObjectURL(file);
+            imagePreview.src = imgUrl; imagePreview.style.display = 'block';
+            
+            updateStatus('Meningkatkan kualitas (Upscale & Grayscale)...', 'loading');
+            const img = new Image(); img.src = imgUrl; await new Promise(resolve => img.onload = resolve);
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const scaleFactor = 2.5; 
+            canvas.width = img.width * scaleFactor; canvas.height = img.height * scaleFactor;
+            ctx.imageSmoothingEnabled = false; 
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i] = avg; data[i + 1] = avg; data[i + 2] = avg;
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            const worker = await Tesseract.createWorker('ind+eng', 1, { 
+                logger: m => m.status === 'recognizing text' && updateStatus(`Membaca Teks: ${(m.progress * 100).toFixed(0)}%`, 'loading')
+            });
+            
+            const { data: ocrData } = await worker.recognize(canvas);
+            await worker.terminate();
+            
+            return { text: cleanOCRText(ocrData.text), confidence: ocrData.confidence };
+        };
+
+        const processPDF = async (file) => {
+            updateStatus('Membaca file PDF...', 'loading');
+            const fileReader = new FileReader(); fileReader.readAsArrayBuffer(file);
+            return new Promise((resolve, reject) => {
+                fileReader.onload = async () => {
+                    try {
+                        const typedarray = new Uint8Array(fileReader.result);
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        let fullText = '';
+                        let totalConfidence = 0;
+                        const worker = await Tesseract.createWorker('ind+eng');
+                        
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            updateStatus(`Memproses halaman ${i} dari ${pdf.numPages}...`, 'loading');
+                            const page = await pdf.getPage(i);
+                            const viewport = page.getViewport({ scale: 2.5 });
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height; canvas.width = viewport.width;
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+                            const { data } = await worker.recognize(canvas);
+                            fullText += `--- Halaman ${i} ---\n${cleanOCRText(data.text)}\n\n`; 
+                            totalConfidence += data.confidence;
+                            resultText.value = fullText; resultSection.style.display = 'block';
+                        }
+                        await worker.terminate(); 
+                        resolve({ text: fullText, confidence: totalConfidence / pdf.numPages });
+                    } catch (error) { reject(error); }
+                };
+                fileReader.onerror = reject;
+            });
+        };
+        
+        const handleFile = async (file) => {
+            if (!file) return;
+            resetUI();
+            fileNameDisplay.textContent = file.name;
+            currentFileName = file.name.split('.').slice(0, -1).join('.') + '_ocr.txt';
+            
+            try {
+                let result;
+                if (file.type.startsWith('image/')) result = await processImage(file);
+                else if (file.type === 'application/pdf') result = await processPDF(file);
+                else throw new Error('Format file tidak didukung.');
+                
+                const finalText = result.text || "Tidak ada teks yang terdeteksi.";
+                const confidence = Math.round(result.confidence || 0);
+                
+                resultText.value = finalText;
+                resultSection.style.display = 'block';
+                updateStatus('Selesai! Teks berhasil diekstrak & diperbaiki.', 'success');
+                
+                const charCount = finalText.length;
+                const wordCount = finalText.trim().split(/\s+/).filter(Boolean).length;
+                
+                let confColor = 'is-danger';
+                if(confidence > 85) confColor = 'is-success';
+                else if(confidence > 60) confColor = 'is-warning';
+
+                textStats.innerHTML = `
+                    <span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${charCount} Karakter</span>
+                    <span class="tag is-light stats-tag"><i class="fas fa-file-word mr-1"></i> ${wordCount} Kata</span>
+                    <span class="tag ${confColor} is-light stats-tag" title="Tingkat Keyakinan AI"><i class="fas fa-bullseye mr-1"></i> Akurasi: ${confidence}%</span>
+                `;
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error'); console.error(error);
+            }
+        };
+
+        window.addEventListener('paste', async (e) => {
+            const file = e.clipboardData.files[0];
+            if (file && file.type.startsWith('image/')) {
+                e.preventDefault();
+                fileNameDisplay.textContent = `Gambar dari Clipboard`;
+                currentFileName = `clipboard_ocr.txt`;
+                await handleFile(file);
+            }
+        });
+
+        copyButton.addEventListener('click', () => {
+            resultText.select(); resultText.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(resultText.value).then(() => {
+                const icon = copyButton.querySelector('i');
+                const textSpan = document.getElementById('copy-text');
+                copyButton.className = 'button is-small is-success is-rounded';
+                icon.className = 'fas fa-check'; textSpan.textContent = 'Tersalin';
+                setTimeout(() => {
+                    copyButton.className = 'button is-small is-link is-outlined is-rounded';
+                    icon.className = 'far fa-copy'; textSpan.textContent = 'Salin';
+                }, 2000);
+            });
+        });
+
+        downloadButton.addEventListener('click', () => {
+            const blob = new Blob([resultText.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = currentFileName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+
+        resetButton.addEventListener('click', resetUI);
+        
+        const toggleDarkMode = (isDark) => {
+            if (isDark) { document.body.classList.add('dark-mode'); darkModeToggle.checked = true; } 
+            else { document.body.classList.remove('dark-mode'); darkModeToggle.checked = false; }
+        };
+        darkModeToggle.addEventListener('change', () => {
+            const isDark = darkModeToggle.checked; toggleDarkMode(isDark); localStorage.setItem('darkMode', isDark);
+        });
+        const savedMode = localStorage.getItem('darkMode') === 'true';
+        toggleDarkMode(savedMode);
+    </script>
+</body>
+</html>
