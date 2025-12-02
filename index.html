@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCR Pro - Mobile UI Edition</title>
+    <title>OCR Pro - Final Stable</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -152,7 +152,7 @@
                 </div>
 
                 <div id="preview-section" class="block has-text-centered mt-4" style="display: none;">
-                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Auto-Enhanced Active</div>
+                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Auto-Enhanced</div>
                     <br>
                     <img id="image-preview" src="#" alt="Preview" />
                 </div>
@@ -371,6 +371,7 @@
         const resetUI = () => {
             resultSection.style.display = 'none'; previewSection.style.display = 'none';
             resultText.value = ''; 
+            textStats.innerHTML = ''; // Reset Stats juga
             updateStatus('Siap memproses dokumen...', 'info');
         };
 
@@ -380,9 +381,18 @@
             resultText.value = txt; resultSection.style.display = 'block';
             updateStatus('Selesai!', 'success');
             saveToHistory(currentFileName, txt, conf);
-            let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
-            textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
+            showStats(txt, conf);
         }
+        
+        // FUNGSI BARU: Show Stats (Biar bisa dipanggil dari History)
+        function showStats(txt, conf) {
+            let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
+            // Pastikan elemen ada sebelum diisi
+            if(textStats) {
+                textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
+            }
+        }
+
         function handleError(e) { updateStatus(`Error: ${e.message}`, 'error'); console.error(e); }
 
         const processImage = async (blobFile) => {
@@ -404,6 +414,7 @@
                 data[i]=val; data[i+1]=val; data[i+2]=val; 
             }
             ctx.putImageData(imageData, 0, 0);
+            
             const worker = await Tesseract.createWorker('ind+eng', 1, { logger: m => m.status === 'recognizing text' && updateStatus(`Membaca: ${(m.progress * 100).toFixed(0)}%`, 'loading') });
             const { data: res } = await worker.recognize(canvas); await worker.terminate();
             return { text: cleanOCRText(res.text), confidence: res.confidence };
@@ -444,7 +455,16 @@
                     const div = document.createElement('div');
                     div.className = 'notification is-light mb-2 p-3 history-item';
                     div.innerHTML = `<div class="is-flex is-justify-content-space-between"><strong>${item.name}</strong><span class="tag is-small ${item.conf > 80 ? 'is-success' : 'is-warning'} is-light">${item.conf}%</span></div><p class="is-size-7 has-text-grey-light is-family-monospace mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text.substring(0, 60)}...</p><div class="history-date mt-1">${item.date}</div>`;
-                    div.onclick = () => { resultText.value = item.text; resultSection.style.display = 'block'; window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' }); updateStatus(`Memuat riwayat: ${item.name}`, 'info'); };
+                    
+                    // FIX: Load Stats saat klik history
+                    div.onclick = () => { 
+                        resultText.value = item.text; 
+                        resultSection.style.display = 'block'; 
+                        window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' }); 
+                        updateStatus(`Memuat riwayat: ${item.name}`, 'info');
+                        showStats(item.text, item.conf); // Tampilkan ulang statistik
+                    };
+                    
                     historyList.appendChild(div);
                 });
             } else historySection.style.display = 'none';
@@ -464,4 +484,4 @@
         if(savedEditor !== null) editorModeToggle.checked = (savedEditor === 'true');
     </script>
 </body>
-</html>
+    </html>
