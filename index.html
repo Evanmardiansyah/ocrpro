@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCR Pro - Flexible Edition</title>
+    <title>OCR Pro - Mobile UI Edition</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,15 +32,23 @@
         .upload-zone.is-dragover { background-color: rgba(72, 199, 116, 0.1) !important; border-color: #48c774 !important; transform: scale(1.02); }
         body.dark-mode .upload-zone:hover { background-color: rgba(50, 152, 220, 0.1); }
 
-        .switch-wrapper { position: relative; display: inline-block; width: 44px; height: 24px; }
+        /* Switch Toggle Style */
+        .switch-wrapper { position: relative; display: inline-block; width: 40px; height: 22px; vertical-align: middle; }
         .switch-wrapper input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #48c774; }
-        input:checked + .slider:before { transform: translateX(20px); }
+        input:checked + .slider:before { transform: translateX(18px); }
         
         /* Orange Slider for Editor Toggle */
-        .slider.orange-slider input:checked + .slider { background-color: #ff9f43; }
+        .slider.orange-slider { background-color: #ccc; }
+        input:checked + .slider.orange-slider { background-color: #ff9f43; }
+
+        /* Icon next to switch */
+        .control-icon { font-size: 1rem; color: #b5b5b5; margin-right: 6px; vertical-align: middle; }
+        body.dark-mode .control-icon { color: #666; }
+        .control-item { display: flex; align-items: center; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid transparent; }
+        body.dark-mode .control-item { background: rgba(255,255,255,0.05); }
 
         #result-text { min-height: 200px; max-height: 600px; font-family: 'Consolas', monospace; font-size: 0.9em; background-color: var(--bg-color); color: var(--text-color); border-color: var(--border-color); }
         .fade-in { animation: fadeIn 0.6s ease-out; }
@@ -62,11 +70,25 @@
             display: inline-flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
+        /* --- MOBILE SPECIFIC FIXES --- */
         @media screen and (max-width: 768px) {
-            .section { padding: 1.5rem 1rem; }
-            .box { padding: 1.25rem; }
-            .title.is-4 { font-size: 1.1rem; } 
+            .section { padding: 1.25rem 0.75rem; } /* Padding luar lebih tipis */
+            .box { padding: 1rem; }
+            
+            /* Header Compact Logic */
+            .level-mobile-compact { display: flex; justify-content: space-between; align-items: center; }
+            .title.is-4 { font-size: 1rem; margin-bottom: 0 !important; }
+            .tag.is-success { display: none; } /* Sembunyikan versi di HP biar muat */
+            
+            /* Controls di HP lebih rapat */
+            .control-item { padding: 2px 6px; margin-left: 4px !important; }
+            .control-icon { font-size: 0.9rem; margin-right: 4px; }
+            .switch-wrapper { width: 34px; height: 18px; }
+            .slider:before { height: 14px; width: 14px; left: 2px; bottom: 2px; }
+            input:checked + .slider:before { transform: translateX(16px); }
+            
             .upload-zone { padding: 1.5rem; }
+            .upload-zone p.is-size-5 { font-size: 0.95rem !important; }
             .level-right { margin-top: 1rem; }
             #download-button { width: 100%; display: flex; justify-content: center; }
             #text-stats { display: flex; flex-wrap: wrap; justify-content: center; }
@@ -79,35 +101,39 @@
     <section class="section">
         <div class="container is-max-desktop">
             <div class="box shadow-lg fade-in">
+                
                 <div class="level is-mobile mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
                     <div class="level-left">
-                        <div style="max-width: 50vw;">
+                        <div style="max-width: 45vw;">
                             <p class="title is-4 is-flex is-align-items-center">
                                 <span class="icon mr-2 has-text-info"><i class="fas fa-robot"></i></span>
                                 <span>OCR Pro</span>
-                                <span class="tag is-primary is-light ml-2 is-hidden-mobile">Flexible</span>
                             </p>
                         </div>
                     </div>
                     <div class="level-right">
-                        <div class="buttons are-small is-flex-wrap-nowrap is-align-items-center">
+                        <div class="is-flex is-align-items-center">
                             
-                            <div class="mr-4 has-text-right is-flex is-align-items-center">
-                                <span class="is-size-7 mr-2 has-text-weight-bold has-text-grey">Editor:</span>
-                                <label class="switch-wrapper" title="Nyalakan Mode Potong & Putar">
+                            <div class="control-item mr-2" title="Mode Editor (Crop)">
+                                <i class="fas fa-crop-alt control-icon"></i>
+                                <label class="switch-wrapper">
                                     <input type="checkbox" id="editor-mode-toggle" checked>
-                                    <span class="slider" style="background-color: #ccc;"></span> </label>
+                                    <span class="slider orange-slider"></span>
+                                </label>
                             </div>
 
-                            <button id="reset-button" class="button is-rounded is-light" title="Reset">
-                                <span class="icon"><i class="fas fa-sync-alt"></i></span>
-                            </button>
-                            <div class="ml-2" style="display:flex; align-items:center;">
-                                <label class="switch-wrapper" title="Mode Gelap">
+                            <div class="control-item">
+                                <i class="fas fa-moon control-icon"></i>
+                                <label class="switch-wrapper">
                                     <input type="checkbox" id="dark-mode-toggle">
                                     <span class="slider"></span>
                                 </label>
                             </div>
+
+                            <button id="reset-button" class="button is-small is-rounded is-light ml-2" title="Reset">
+                                <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
+                            </button>
+
                         </div>
                     </div>
                 </div>
@@ -119,7 +145,7 @@
                 <div class="field">
                     <div class="upload-zone" id="drop-zone">
                         <span class="icon is-large has-text-link mb-2"><i class="fas fa-cloud-upload-alt fa-3x"></i></span>
-                        <p class="is-size-5 has-text-weight-medium mt-2">Klik atau Tarik File Kesini</p>
+                        <p class="is-size-5 has-text-weight-medium mt-2">Klik / Tarik File Kesini</p>
                         <p id="file-name" class="is-size-7 has-text-grey mt-1">Belum ada file dipilih</p>
                         <input type="file" id="uploader" accept="image/*,application/pdf" style="display:none;" />
                     </div>
@@ -169,10 +195,10 @@
                 <div id="history-section" class="mt-6 pt-5" style="border-top: 1px dashed var(--border-color); display:none;">
                     <div class="level is-mobile mb-4">
                         <div class="level-left">
-                            <h4 class="title is-6 has-text-grey">🕐 Riwayat Scan</h4>
+                            <h4 class="title is-6 has-text-grey">🕐 Riwayat</h4>
                         </div>
                         <div class="level-right">
-                            <button id="clear-history" class="button is-small is-danger is-light is-rounded">Hapus Semua</button>
+                            <button id="clear-history" class="button is-small is-danger is-light is-rounded">Hapus</button>
                         </div>
                     </div>
                     <div id="history-list"></div>
@@ -199,12 +225,12 @@
                     <button class="button is-small is-rounded" onclick="rotateImage(90)" title="Putar Kanan"><span class="icon"><i class="fas fa-redo"></i></span></button>
                     <button class="button is-small is-rounded is-danger is-light" onclick="resetCropper()" title="Reset"><span class="icon"><i class="fas fa-sync"></i></span> Reset</button>
                 </div>
-                <p class="has-text-centered is-size-7 has-text-grey mt-2"><i class="fas fa-magic has-text-info"></i> Gambar akan otomatis diperjelas saat diproses.</p>
+                <p class="has-text-centered is-size-7 has-text-grey mt-2"><i class="fas fa-magic has-text-info"></i> Auto-Enhance Aktif</p>
             </section>
             <footer class="modal-card-foot is-justify-content-flex-end">
                 <button class="button" id="cancel-crop">Batal</button>
                 <button class="button is-success" id="process-crop">
-                    <span class="icon mr-1"><i class="fas fa-check"></i></span> Potong & Scan
+                    <span class="icon mr-1"><i class="fas fa-check"></i></span> Proses
                 </button>
             </footer>
         </div>
@@ -228,7 +254,7 @@
         const downloadButton = document.getElementById('download-button');
         const resetButton = document.getElementById('reset-button');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
-        const editorModeToggle = document.getElementById('editor-mode-toggle'); // NEW TOGGLE
+        const editorModeToggle = document.getElementById('editor-mode-toggle');
         const textStats = document.getElementById('text-stats');
         
         // History & Modal
@@ -266,16 +292,13 @@
             fileNameDisplay.textContent = currentFileName;
             
             if (file.type.startsWith('image/')) {
-                // CEK TOGGLE EDITOR
                 if (editorModeToggle.checked) {
                     openCropperModal(file); // Buka Editor
                 } else {
-                    // LANGSUNG PROSES (Bypass Editor, tapi tetap Auto-Enhance)
                     resetUI();
                     previewSection.style.display = 'block';
                     imagePreview.src = URL.createObjectURL(file);
                     imagePreview.style.display = 'block';
-                    // Convert File ke Blob url lalu proses
                     processImage(file).then(finishProcessing).catch(handleError);
                 }
             } else if (file.type === 'application/pdf') {
@@ -364,31 +387,23 @@
 
         const processImage = async (blobFile) => {
             updateStatus('Auto-Enhance (Perbaikan Gambar)...', 'loading');
-            
-            // Handle Blob or File input
             let imgSource = blobFile;
-            if (blobFile instanceof File || blobFile instanceof Blob) {
-                imgSource = URL.createObjectURL(blobFile);
-            }
-
+            if (blobFile instanceof File || blobFile instanceof Blob) { imgSource = URL.createObjectURL(blobFile); }
             const img = new Image(); img.src = imgSource; await new Promise(r => img.onload = r);
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             const scale = 2.5; canvas.width = img.width * scale; canvas.height = img.height * scale;
             ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            // --- AUTO ENHANCE ALGORITHM ---
+            // Auto Enhance
             const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             const data = imageData.data;
             let sum = 0; for(let i=0; i<data.length; i+=4) sum += (data[i]+data[i+1]+data[i+2])/3;
-            const avg = sum / (data.length/4);
-            const threshold = avg * 0.9;
+            const avg = sum / (data.length/4); const threshold = avg * 0.9;
             for(let i=0; i<data.length; i+=4){ 
                 const gray = (data[i]+data[i+1]+data[i+2])/3;
                 const val = gray < threshold ? 0 : 255;
                 data[i]=val; data[i+1]=val; data[i+2]=val; 
             }
             ctx.putImageData(imageData, 0, 0);
-            
             const worker = await Tesseract.createWorker('ind+eng', 1, { logger: m => m.status === 'recognizing text' && updateStatus(`Membaca: ${(m.progress * 100).toFixed(0)}%`, 'loading') });
             const { data: res } = await worker.recognize(canvas); await worker.terminate();
             return { text: cleanOCRText(res.text), confidence: res.confidence };
@@ -442,16 +457,11 @@
         
         const toggleDarkMode = (isDark) => { if (isDark) { document.body.classList.add('dark-mode'); darkModeToggle.checked = true; } else { document.body.classList.remove('dark-mode'); darkModeToggle.checked = false; } };
         darkModeToggle.addEventListener('change', () => { const isDark = darkModeToggle.checked; toggleDarkMode(isDark); localStorage.setItem('darkMode', isDark); });
-        
-        // Save Editor State
         const saveEditorState = () => localStorage.setItem('editorMode', editorModeToggle.checked);
         editorModeToggle.addEventListener('change', saveEditorState);
-        
-        // Init States
         const savedMode = localStorage.getItem('darkMode') === 'true'; toggleDarkMode(savedMode);
         const savedEditor = localStorage.getItem('editorMode');
         if(savedEditor !== null) editorModeToggle.checked = (savedEditor === 'true');
-        
     </script>
 </body>
 </html>
