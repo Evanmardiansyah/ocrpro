@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCR Pro Edition</title>
+    <title>OCR Pro - Flexible Edition</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     
     <script src='https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <style>
         /* --- Style Dasar & Dark Mode --- */
@@ -36,6 +38,9 @@
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #48c774; }
         input:checked + .slider:before { transform: translateX(20px); }
+        
+        /* Orange Slider for Editor Toggle */
+        .slider.orange-slider input:checked + .slider { background-color: #ff9f43; }
 
         #result-text { min-height: 200px; max-height: 600px; font-family: 'Consolas', monospace; font-size: 0.9em; background-color: var(--bg-color); color: var(--text-color); border-color: var(--border-color); }
         .fade-in { animation: fadeIn 0.6s ease-out; }
@@ -43,28 +48,29 @@
         #image-preview { max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); display: none; margin: 0 auto; }
         
         .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; }
-
-        /* History Items Style */
-        .history-item {
-            border-left: 4px solid #3298dc;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .history-item { border-left: 4px solid #3298dc; cursor: pointer; transition: all 0.2s; }
         .history-item:hover { transform: translateX(5px); }
         .history-date { font-size: 0.75rem; color: #888; }
         body.dark-mode .history-item { background-color: #3a3b3c; color: #e0e0e0; border-color: #48c774; }
 
-        /* Mobile Tweaks */
+        .cropper-container-box { height: 400px; background-color: #333; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
+        #cropper-image { max-width: 100%; display: block; }
+        
+        .auto-fix-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
+            display: inline-flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
         @media screen and (max-width: 768px) {
             .section { padding: 1.5rem 1rem; }
             .box { padding: 1.25rem; }
             .title.is-4 { font-size: 1.1rem; } 
-            .tag.is-success { font-size: 0.7rem; }
             .upload-zone { padding: 1.5rem; }
-            .upload-zone p.is-size-5 { font-size: 1rem !important; }
             .level-right { margin-top: 1rem; }
             #download-button { width: 100%; display: flex; justify-content: center; }
             #text-stats { display: flex; flex-wrap: wrap; justify-content: center; }
+            .cropper-container-box { height: 300px; }
         }
     </style>
 </head>
@@ -75,16 +81,24 @@
             <div class="box shadow-lg fade-in">
                 <div class="level is-mobile mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
                     <div class="level-left">
-                        <div style="max-width: 70vw;">
+                        <div style="max-width: 50vw;">
                             <p class="title is-4 is-flex is-align-items-center">
                                 <span class="icon mr-2 has-text-info"><i class="fas fa-robot"></i></span>
                                 <span>OCR Pro</span>
-                                <span class="tag is-warning is-light ml-2" style="vertical-align: middle;">V7</span>
+                                <span class="tag is-primary is-light ml-2 is-hidden-mobile">Flexible</span>
                             </p>
                         </div>
                     </div>
                     <div class="level-right">
-                        <div class="buttons are-small is-flex-wrap-nowrap">
+                        <div class="buttons are-small is-flex-wrap-nowrap is-align-items-center">
+                            
+                            <div class="mr-4 has-text-right is-flex is-align-items-center">
+                                <span class="is-size-7 mr-2 has-text-weight-bold has-text-grey">Editor:</span>
+                                <label class="switch-wrapper" title="Nyalakan Mode Potong & Putar">
+                                    <input type="checkbox" id="editor-mode-toggle" checked>
+                                    <span class="slider" style="background-color: #ccc;"></span> </label>
+                            </div>
+
                             <button id="reset-button" class="button is-rounded is-light" title="Reset">
                                 <span class="icon"><i class="fas fa-sync-alt"></i></span>
                             </button>
@@ -112,6 +126,8 @@
                 </div>
 
                 <div id="preview-section" class="block has-text-centered mt-4" style="display: none;">
+                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Auto-Enhanced Active</div>
+                    <br>
                     <img id="image-preview" src="#" alt="Preview" />
                 </div>
 
@@ -159,8 +175,7 @@
                             <button id="clear-history" class="button is-small is-danger is-light is-rounded">Hapus Semua</button>
                         </div>
                     </div>
-                    <div id="history-list">
-                        </div>
+                    <div id="history-list"></div>
                 </div>
 
             </div>
@@ -168,9 +183,37 @@
         </div>
     </section>
 
+    <div id="crop-modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title is-size-5">Edit Area Scan</p>
+                <button class="delete" aria-label="close" id="close-modal"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="cropper-container-box">
+                    <img id="cropper-image" src="" alt="Edit Image">
+                </div>
+                <div class="buttons is-centered mt-4">
+                    <button class="button is-small is-rounded" onclick="rotateImage(-90)" title="Putar Kiri"><span class="icon"><i class="fas fa-undo"></i></span></button>
+                    <button class="button is-small is-rounded" onclick="rotateImage(90)" title="Putar Kanan"><span class="icon"><i class="fas fa-redo"></i></span></button>
+                    <button class="button is-small is-rounded is-danger is-light" onclick="resetCropper()" title="Reset"><span class="icon"><i class="fas fa-sync"></i></span> Reset</button>
+                </div>
+                <p class="has-text-centered is-size-7 has-text-grey mt-2"><i class="fas fa-magic has-text-info"></i> Gambar akan otomatis diperjelas saat diproses.</p>
+            </section>
+            <footer class="modal-card-foot is-justify-content-flex-end">
+                <button class="button" id="cancel-crop">Batal</button>
+                <button class="button is-success" id="process-crop">
+                    <span class="icon mr-1"><i class="fas fa-check"></i></span> Potong & Scan
+                </button>
+            </footer>
+        </div>
+    </div>
+
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+        // Elements
         const uploader = document.getElementById('uploader');
         const dropZone = document.getElementById('drop-zone');
         const fileNameDisplay = document.getElementById('file-name');
@@ -185,50 +228,112 @@
         const downloadButton = document.getElementById('download-button');
         const resetButton = document.getElementById('reset-button');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const editorModeToggle = document.getElementById('editor-mode-toggle'); // NEW TOGGLE
         const textStats = document.getElementById('text-stats');
         
-        // Elemen History
+        // History & Modal
         const historySection = document.getElementById('history-section');
         const historyList = document.getElementById('history-list');
         const clearHistoryBtn = document.getElementById('clear-history');
+        const cropModal = document.getElementById('crop-modal');
+        const cropperImage = document.getElementById('cropper-image');
+        const closeModalBtn = document.getElementById('close-modal');
+        const cancelCropBtn = document.getElementById('cancel-crop');
+        const processCropBtn = document.getElementById('process-crop');
 
         let currentFileName = 'hasil_ocr.txt';
-
-        // --- LOAD HISTORY SAAT START ---
+        let cropperInstance = null;
         loadHistory();
 
-        // --- HANDLER KLIK & DRAG ---
+        // --- HANDLER FILE ---
         dropZone.addEventListener('click', () => uploader.click());
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
-            dropZone.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false);
-            document.body.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+            dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false);
+            document.body.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false);
         });
         ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('is-dragover'), false));
         ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('is-dragover'), false));
-        dropZone.addEventListener('drop', (e) => { if(e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); });
-        uploader.addEventListener('change', (e) => { if(e.target.files.length > 0) handleFile(e.target.files[0]); });
+        dropZone.addEventListener('drop', (e) => { if(e.dataTransfer.files.length > 0) handleFileSelection(e.dataTransfer.files[0]); });
+        uploader.addEventListener('change', (e) => { if(e.target.files.length > 0) handleFileSelection(e.target.files[0]); });
+        window.addEventListener('paste', async (e) => {
+            const file = e.clipboardData.files[0];
+            if (file && file.type.startsWith('image/')) { e.preventDefault(); handleFileSelection(file, 'Clipboard Image.png'); }
+        });
 
+        // --- LOGIKA PEMILIHAN FILE (FLEXIBLE) ---
+        function handleFileSelection(file, nameOverride = null) {
+            currentFileName = nameOverride || file.name;
+            fileNameDisplay.textContent = currentFileName;
+            
+            if (file.type.startsWith('image/')) {
+                // CEK TOGGLE EDITOR
+                if (editorModeToggle.checked) {
+                    openCropperModal(file); // Buka Editor
+                } else {
+                    // LANGSUNG PROSES (Bypass Editor, tapi tetap Auto-Enhance)
+                    resetUI();
+                    previewSection.style.display = 'block';
+                    imagePreview.src = URL.createObjectURL(file);
+                    imagePreview.style.display = 'block';
+                    // Convert File ke Blob url lalu proses
+                    processImage(file).then(finishProcessing).catch(handleError);
+                }
+            } else if (file.type === 'application/pdf') {
+                resetUI(); processPDF(file).then(finishProcessing).catch(handleError);
+            } else {
+                alert('Format file tidak didukung');
+            }
+        }
+
+        // --- FUNGSI MODAL CROPPER ---
+        function openCropperModal(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                cropperImage.src = e.target.result;
+                cropModal.classList.add('is-active');
+                if (cropperInstance) cropperInstance.destroy();
+                cropperInstance = new Cropper(cropperImage, { viewMode: 1, autoCropArea: 1, responsive: true });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function closeCropperModal() {
+            cropModal.classList.remove('is-active');
+            if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+            uploader.value = '';
+        }
+
+        closeModalBtn.onclick = closeCropperModal;
+        cancelCropBtn.onclick = closeCropperModal;
+        window.rotateImage = (d) => cropperInstance && cropperInstance.rotate(d);
+        window.resetCropper = () => cropperInstance && cropperInstance.reset();
+
+        processCropBtn.onclick = () => {
+            if (!cropperInstance) return;
+            const croppedCanvas = cropperInstance.getCroppedCanvas();
+            croppedCanvas.toBlob((blob) => {
+                closeCropperModal(); resetUI();
+                previewSection.style.display = 'block';
+                imagePreview.src = URL.createObjectURL(blob); imagePreview.style.display = 'block';
+                processImage(blob).then(finishProcessing).catch(handleError);
+            }, 'image/png');
+        };
+
+        // --- FUNGSI UTAMA OCR & PDF ---
         const cleanOCRText = (text) => {
             let cleaned = text;
             cleaned = cleaned.replace(/\b([CDE]):\s*[l|I|i|\|/]\s*/g, "$1:\\"); 
             cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*etc/gi, "Snort\\etc"); 
             cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*bin/gi, "Snort\\bin"); 
             cleaned = cleaned.replace(/C\s*[l|I|i|\|/]\s*Snort/gi, "C:\\Snort"); 
-            cleaned = cleaned.replace(/fi\\e/g, "file");   
-            cleaned = cleaned.replace(/ru\\es/g, "rules"); 
-            cleaned = cleaned.replace(/ru\|es/g, "rules"); 
-            cleaned = cleaned.replace(/modu\\/g, "modul"); 
+            cleaned = cleaned.replace(/fi\\e/g, "file"); cleaned = cleaned.replace(/ru\\es/g, "rules"); 
+            cleaned = cleaned.replace(/ru\|es/g, "rules"); cleaned = cleaned.replace(/modu\\/g, "modul"); 
             cleaned = cleaned.replace(/KONFIGURAS\\/g, "KONFIGURASI"); 
-            cleaned = cleaned.replace(/([a-z])1([a-z])/g, "$1l$2"); 
-            cleaned = cleaned.replace(/([a-z])0([a-z])/g, "$1o$2"); 
-            cleaned = cleaned.replace(/SNCRT/gi, "SNORT");
-            cleaned = cleaned.replace(/snert/gi, "snort");
-            cleaned = cleaned.replace(/1D5/g, "IDS");
-            cleaned = cleaned.replace(/1DS/g, "IDS");
-            cleaned = cleaned.replace(/30\s*rules/gi, "so_rules");
-            cleaned = cleaned.replace(/so\s+ru\\es/gi, "so_rules"); 
-            cleaned = cleaned.replace(/so\s+rules/gi, "so_rules");  
-            cleaned = cleaned.replace(/preproc\s*rules/gi, "preproc_rules");
+            cleaned = cleaned.replace(/([a-z])1([a-z])/g, "$1l$2"); cleaned = cleaned.replace(/([a-z])0([a-z])/g, "$1o$2"); 
+            cleaned = cleaned.replace(/SNCRT/gi, "SNORT"); cleaned = cleaned.replace(/snert/gi, "snort");
+            cleaned = cleaned.replace(/1D5/g, "IDS"); cleaned = cleaned.replace(/1DS/g, "IDS");
+            cleaned = cleaned.replace(/30\s*rules/gi, "so_rules"); cleaned = cleaned.replace(/so\s+ru\\es/gi, "so_rules"); 
+            cleaned = cleaned.replace(/so\s+rules/gi, "so_rules"); cleaned = cleaned.replace(/preproc\s*rules/gi, "preproc_rules");
             return cleaned;
         };
 
@@ -241,22 +346,48 @@
         };
 
         const resetUI = () => {
-            uploader.value = ''; resultSection.style.display = 'none'; previewSection.style.display = 'none';
-            resultText.value = ''; fileNameDisplay.textContent = 'Belum ada file dipilih';
+            resultSection.style.display = 'none'; previewSection.style.display = 'none';
+            resultText.value = ''; 
             updateStatus('Siap memproses dokumen...', 'info');
         };
 
-        const processImage = async (file) => {
-            previewSection.style.display = 'block';
-            imagePreview.src = URL.createObjectURL(file); imagePreview.style.display = 'block';
-            updateStatus('Meningkatkan kualitas...', 'loading');
-            const img = new Image(); img.src = URL.createObjectURL(file); await new Promise(r => img.onload = r);
+        function finishProcessing(result) {
+            const txt = result.text || "Tidak ada teks.";
+            const conf = Math.round(result.confidence || 0);
+            resultText.value = txt; resultSection.style.display = 'block';
+            updateStatus('Selesai!', 'success');
+            saveToHistory(currentFileName, txt, conf);
+            let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
+            textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
+        }
+        function handleError(e) { updateStatus(`Error: ${e.message}`, 'error'); console.error(e); }
+
+        const processImage = async (blobFile) => {
+            updateStatus('Auto-Enhance (Perbaikan Gambar)...', 'loading');
+            
+            // Handle Blob or File input
+            let imgSource = blobFile;
+            if (blobFile instanceof File || blobFile instanceof Blob) {
+                imgSource = URL.createObjectURL(blobFile);
+            }
+
+            const img = new Image(); img.src = imgSource; await new Promise(r => img.onload = r);
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             const scale = 2.5; canvas.width = img.width * scale; canvas.height = img.height * scale;
             ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
-            for(let i=0; i<data.length; i+=4){ const avg=(data[i]+data[i+1]+data[i+2])/3; data[i]=avg; data[i+1]=avg; data[i+2]=avg; }
-            ctx.putImageData(new ImageData(data, canvas.width, canvas.height), 0, 0);
+            
+            // --- AUTO ENHANCE ALGORITHM ---
+            const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+            const data = imageData.data;
+            let sum = 0; for(let i=0; i<data.length; i+=4) sum += (data[i]+data[i+1]+data[i+2])/3;
+            const avg = sum / (data.length/4);
+            const threshold = avg * 0.9;
+            for(let i=0; i<data.length; i+=4){ 
+                const gray = (data[i]+data[i+1]+data[i+2])/3;
+                const val = gray < threshold ? 0 : 255;
+                data[i]=val; data[i+1]=val; data[i+2]=val; 
+            }
+            ctx.putImageData(imageData, 0, 0);
             
             const worker = await Tesseract.createWorker('ind+eng', 1, { logger: m => m.status === 'recognizing text' && updateStatus(`Membaca: ${(m.progress * 100).toFixed(0)}%`, 'loading') });
             const { data: res } = await worker.recognize(canvas); await worker.terminate();
@@ -281,118 +412,46 @@
             await worker.terminate();
             return { text: fullText, confidence: totalConf/pdf.numPages };
         };
-        
-        const handleFile = async (file) => {
-            if (!file) return; resetUI();
-            fileNameDisplay.textContent = file.name; currentFileName = file.name;
-            try {
-                let res;
-                if(file.type.startsWith('image/')) res = await processImage(file);
-                else if(file.type === 'application/pdf') res = await processPDF(file);
-                else throw new Error('File tidak didukung');
-                
-                const txt = res.text || "Tidak ada teks.";
-                const conf = Math.round(res.confidence || 0);
-                
-                resultText.value = txt; resultSection.style.display = 'block';
-                updateStatus('Selesai!', 'success');
-                
-                // SAVE TO HISTORY
-                saveToHistory(file.name, txt, conf);
 
-                let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
-                textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
-            } catch (e) { updateStatus(`Error: ${e.message}`, 'error'); }
-        };
-
-        // --- FUNGSI HISTORY ---
         function saveToHistory(fname, text, conf) {
             let history = JSON.parse(localStorage.getItem('ocrHistory') || '[]');
-            const newItem = {
-                id: Date.now(),
-                name: fname,
-                text: text,
-                conf: conf,
-                date: new Date().toLocaleString('id-ID')
-            };
-            history.unshift(newItem); // Tambah di awal
-            if(history.length > 5) history.pop(); // Simpan max 5 item
-            localStorage.setItem('ocrHistory', JSON.stringify(history));
-            loadHistory();
+            const newItem = { id: Date.now(), name: fname, text: text, conf: conf, date: new Date().toLocaleString('id-ID') };
+            history.unshift(newItem); if(history.length > 5) history.pop();
+            localStorage.setItem('ocrHistory', JSON.stringify(history)); loadHistory();
         }
 
         function loadHistory() {
             const history = JSON.parse(localStorage.getItem('ocrHistory') || '[]');
             historyList.innerHTML = '';
-            
             if(history.length > 0) {
                 historySection.style.display = 'block';
                 history.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'notification is-light mb-2 p-3 history-item';
-                    div.innerHTML = `
-                        <div class="is-flex is-justify-content-space-between">
-                            <strong>${item.name}</strong>
-                            <span class="tag is-small ${item.conf > 80 ? 'is-success' : 'is-warning'} is-light">${item.conf}%</span>
-                        </div>
-                        <p class="is-size-7 has-text-grey-light is-family-monospace mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${item.text.substring(0, 60)}...
-                        </p>
-                        <div class="history-date mt-1">${item.date}</div>
-                    `;
-                    div.onclick = () => {
-                        resultText.value = item.text;
-                        resultSection.style.display = 'block';
-                        window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' });
-                        updateStatus(`Memuat riwayat: ${item.name}`, 'info');
-                    };
+                    div.innerHTML = `<div class="is-flex is-justify-content-space-between"><strong>${item.name}</strong><span class="tag is-small ${item.conf > 80 ? 'is-success' : 'is-warning'} is-light">${item.conf}%</span></div><p class="is-size-7 has-text-grey-light is-family-monospace mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text.substring(0, 60)}...</p><div class="history-date mt-1">${item.date}</div>`;
+                    div.onclick = () => { resultText.value = item.text; resultSection.style.display = 'block'; window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' }); updateStatus(`Memuat riwayat: ${item.name}`, 'info'); };
                     historyList.appendChild(div);
                 });
-            } else {
-                historySection.style.display = 'none';
-            }
+            } else historySection.style.display = 'none';
         }
 
-        clearHistoryBtn.addEventListener('click', () => {
-            if(confirm('Hapus semua riwayat scan?')) {
-                localStorage.removeItem('ocrHistory');
-                loadHistory();
-            }
-        });
-
-        window.addEventListener('paste', async (e) => {
-            const file = e.clipboardData.files[0];
-            if (file && file.type.startsWith('image/')) {
-                e.preventDefault(); fileNameDisplay.textContent = `Clipboard Image`;
-                handleFile(file);
-            }
-        });
-
-        copyButton.addEventListener('click', () => {
-            resultText.select(); navigator.clipboard.writeText(resultText.value).then(() => {
-                const icon = copyButton.querySelector('i'); const txt = document.getElementById('copy-text');
-                copyButton.className='button is-small is-success is-rounded'; icon.className='fas fa-check'; txt.textContent='Tersalin';
-                setTimeout(() => { copyButton.className='button is-small is-link is-outlined is-rounded'; icon.className='far fa-copy'; txt.textContent='Salin'; }, 2000);
-            });
-        });
-
-        downloadButton.addEventListener('click', () => {
-            const blob = new Blob([resultText.value], {type:'text/plain'});
-            const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hasil_ocr.txt';
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        });
-
-        resetButton.addEventListener('click', resetUI);
+        clearHistoryBtn.addEventListener('click', () => { if(confirm('Hapus semua riwayat scan?')) { localStorage.removeItem('ocrHistory'); loadHistory(); }});
+        copyButton.addEventListener('click', () => { resultText.select(); navigator.clipboard.writeText(resultText.value).then(() => { const icon = copyButton.querySelector('i'); const txt = document.getElementById('copy-text'); copyButton.className='button is-small is-success is-rounded'; icon.className='fas fa-check'; txt.textContent='Tersalin'; setTimeout(() => { copyButton.className='button is-small is-link is-outlined is-rounded'; icon.className='far fa-copy'; txt.textContent='Salin'; }, 2000); }); });
+        downloadButton.addEventListener('click', () => { const blob = new Blob([resultText.value], {type:'text/plain'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hasil_ocr.txt'; document.body.appendChild(a); a.click(); document.body.removeChild(a); });
+        resetButton.addEventListener('click', () => { uploader.value = ''; fileNameDisplay.textContent = 'Belum ada file dipilih'; resetUI(); });
         
-        const toggleDarkMode = (isDark) => {
-            if (isDark) { document.body.classList.add('dark-mode'); darkModeToggle.checked = true; } 
-            else { document.body.classList.remove('dark-mode'); darkModeToggle.checked = false; }
-        };
-        darkModeToggle.addEventListener('change', () => {
-            const isDark = darkModeToggle.checked; toggleDarkMode(isDark); localStorage.setItem('darkMode', isDark);
-        });
+        const toggleDarkMode = (isDark) => { if (isDark) { document.body.classList.add('dark-mode'); darkModeToggle.checked = true; } else { document.body.classList.remove('dark-mode'); darkModeToggle.checked = false; } };
+        darkModeToggle.addEventListener('change', () => { const isDark = darkModeToggle.checked; toggleDarkMode(isDark); localStorage.setItem('darkMode', isDark); });
+        
+        // Save Editor State
+        const saveEditorState = () => localStorage.setItem('editorMode', editorModeToggle.checked);
+        editorModeToggle.addEventListener('change', saveEditorState);
+        
+        // Init States
         const savedMode = localStorage.getItem('darkMode') === 'true'; toggleDarkMode(savedMode);
+        const savedEditor = localStorage.getItem('editorMode');
+        if(savedEditor !== null) editorModeToggle.checked = (savedEditor === 'true');
+        
     </script>
 </body>
 </html>
-
