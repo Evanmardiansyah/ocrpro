@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCR Pro - Final Stable</title>
+    <title>OCR Pro - Color Safe v17</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -40,11 +40,9 @@
         input:checked + .slider { background-color: #48c774; }
         input:checked + .slider:before { transform: translateX(18px); }
         
-        /* Orange Slider for Editor Toggle */
         .slider.orange-slider { background-color: #ccc; }
         input:checked + .slider.orange-slider { background-color: #ff9f43; }
 
-        /* Icon next to switch */
         .control-icon { font-size: 1rem; color: #b5b5b5; margin-right: 6px; vertical-align: middle; }
         body.dark-mode .control-icon { color: #666; }
         .control-item { display: flex; align-items: center; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid transparent; }
@@ -55,7 +53,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #image-preview { max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); display: none; margin: 0 auto; }
         
-        .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; }
+        .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-flex; align-items: center; }
+        
         .history-item { border-left: 4px solid #3298dc; cursor: pointer; transition: all 0.2s; }
         .history-item:hover { transform: translateX(5px); }
         .history-date { font-size: 0.75rem; color: #888; }
@@ -72,26 +71,20 @@
 
         /* --- MOBILE SPECIFIC FIXES --- */
         @media screen and (max-width: 768px) {
-            .section { padding: 1.25rem 0.75rem; } /* Padding luar lebih tipis */
+            .section { padding: 1.25rem 0.75rem; }
             .box { padding: 1rem; }
-            
-            /* Header Compact Logic */
-            .level-mobile-compact { display: flex; justify-content: space-between; align-items: center; }
             .title.is-4 { font-size: 1rem; margin-bottom: 0 !important; }
-            .tag.is-success { display: none; } /* Sembunyikan versi di HP biar muat */
-            
-            /* Controls di HP lebih rapat */
+            .tag.is-success { display: none; }
             .control-item { padding: 2px 6px; margin-left: 4px !important; }
             .control-icon { font-size: 0.9rem; margin-right: 4px; }
             .switch-wrapper { width: 34px; height: 18px; }
             .slider:before { height: 14px; width: 14px; left: 2px; bottom: 2px; }
             input:checked + .slider:before { transform: translateX(16px); }
-            
             .upload-zone { padding: 1.5rem; }
             .upload-zone p.is-size-5 { font-size: 0.95rem !important; }
             .level-right { margin-top: 1rem; }
             #download-button { width: 100%; display: flex; justify-content: center; }
-            #text-stats { display: flex; flex-wrap: wrap; justify-content: center; }
+            #text-stats { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; }
             .cropper-container-box { height: 300px; }
         }
     </style>
@@ -152,7 +145,7 @@
                 </div>
 
                 <div id="preview-section" class="block has-text-centered mt-4" style="display: none;">
-                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Auto-Enhanced</div>
+                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Color Safe Mode</div>
                     <br>
                     <img id="image-preview" src="#" alt="Preview" />
                 </div>
@@ -181,8 +174,7 @@
 
                     <div id="post-result-actions" class="level mt-4">
                         <div class="level-left">
-                            <div id="text-stats" class="tags"></div>
-                        </div>
+                            <div id="text-stats" class="tags"></div> </div>
                         <div class="level-right">
                             <button id="download-button" class="button is-primary is-rounded shadow-sm">
                                 <span class="icon"><i class="fas fa-download"></i></span>
@@ -225,7 +217,6 @@
                     <button class="button is-small is-rounded" onclick="rotateImage(90)" title="Putar Kanan"><span class="icon"><i class="fas fa-redo"></i></span></button>
                     <button class="button is-small is-rounded is-danger is-light" onclick="resetCropper()" title="Reset"><span class="icon"><i class="fas fa-sync"></i></span> Reset</button>
                 </div>
-                <p class="has-text-centered is-size-7 has-text-grey mt-2"><i class="fas fa-magic has-text-info"></i> Auto-Enhance Aktif</p>
             </section>
             <footer class="modal-card-foot is-justify-content-flex-end">
                 <button class="button" id="cancel-crop">Batal</button>
@@ -286,14 +277,14 @@
             if (file && file.type.startsWith('image/')) { e.preventDefault(); handleFileSelection(file, 'Clipboard Image.png'); }
         });
 
-        // --- LOGIKA PEMILIHAN FILE (FLEXIBLE) ---
+        // --- LOGIKA PEMILIHAN FILE ---
         function handleFileSelection(file, nameOverride = null) {
             currentFileName = nameOverride || file.name;
             fileNameDisplay.textContent = currentFileName;
             
             if (file.type.startsWith('image/')) {
                 if (editorModeToggle.checked) {
-                    openCropperModal(file); // Buka Editor
+                    openCropperModal(file);
                 } else {
                     resetUI();
                     previewSection.style.display = 'block';
@@ -308,7 +299,7 @@
             }
         }
 
-        // --- FUNGSI MODAL CROPPER ---
+        // --- FUNGSI MODAL ---
         function openCropperModal(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -342,7 +333,7 @@
             }, 'image/png');
         };
 
-        // --- FUNGSI UTAMA OCR & PDF ---
+        // --- CORE OCR ---
         const cleanOCRText = (text) => {
             let cleaned = text;
             cleaned = cleaned.replace(/\b([CDE]):\s*[l|I|i|\|/]\s*/g, "$1:\\"); 
@@ -370,8 +361,7 @@
 
         const resetUI = () => {
             resultSection.style.display = 'none'; previewSection.style.display = 'none';
-            resultText.value = ''; 
-            textStats.innerHTML = ''; // Reset Stats juga
+            resultText.value = ''; textStats.innerHTML = '';
             updateStatus('Siap memproses dokumen...', 'info');
         };
 
@@ -381,37 +371,40 @@
             resultText.value = txt; resultSection.style.display = 'block';
             updateStatus('Selesai!', 'success');
             saveToHistory(currentFileName, txt, conf);
-            showStats(txt, conf);
+            showStats(txt, conf); // FIX: Panggil showStats terpisah
         }
         
-        // FUNGSI BARU: Show Stats (Biar bisa dipanggil dari History)
+        // FUNGSI BARU: Render Stats agar konsisten
         function showStats(txt, conf) {
             let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
-            // Pastikan elemen ada sebelum diisi
-            if(textStats) {
-                textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
-            }
+            textStats.innerHTML = `
+                <span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> 
+                <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>
+            `;
         }
 
         function handleError(e) { updateStatus(`Error: ${e.message}`, 'error'); console.error(e); }
 
         const processImage = async (blobFile) => {
-            updateStatus('Auto-Enhance (Perbaikan Gambar)...', 'loading');
+            updateStatus('Meningkatkan kualitas...', 'loading');
             let imgSource = blobFile;
             if (blobFile instanceof File || blobFile instanceof Blob) { imgSource = URL.createObjectURL(blobFile); }
             const img = new Image(); img.src = imgSource; await new Promise(r => img.onload = r);
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             const scale = 2.5; canvas.width = img.width * scale; canvas.height = img.height * scale;
             ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            // Auto Enhance
+            
+            // --- FIX: SMART GRAYSCALE (Tanpa Threshold Kasar) ---
             const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             const data = imageData.data;
-            let sum = 0; for(let i=0; i<data.length; i+=4) sum += (data[i]+data[i+1]+data[i+2])/3;
-            const avg = sum / (data.length/4); const threshold = avg * 0.9;
             for(let i=0; i<data.length; i+=4){ 
-                const gray = (data[i]+data[i+1]+data[i+2])/3;
-                const val = gray < threshold ? 0 : 255;
-                data[i]=val; data[i+1]=val; data[i+2]=val; 
+                // Rumus Luminosity (Manusiawi)
+                const gray = (0.299 * data[i]) + (0.587 * data[i+1]) + (0.114 * data[i+2]);
+                // Naikkan kontras sedikit (10%) tanpa memaksa hitam/putih
+                const contrastFactor = 1.1; 
+                const newColor = ((gray - 128) * contrastFactor) + 128;
+                
+                data[i] = newColor; data[i+1] = newColor; data[i+2] = newColor; 
             }
             ctx.putImageData(imageData, 0, 0);
             
@@ -456,13 +449,13 @@
                     div.className = 'notification is-light mb-2 p-3 history-item';
                     div.innerHTML = `<div class="is-flex is-justify-content-space-between"><strong>${item.name}</strong><span class="tag is-small ${item.conf > 80 ? 'is-success' : 'is-warning'} is-light">${item.conf}%</span></div><p class="is-size-7 has-text-grey-light is-family-monospace mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text.substring(0, 60)}...</p><div class="history-date mt-1">${item.date}</div>`;
                     
-                    // FIX: Load Stats saat klik history
+                    // FIX: Tampilkan Stats saat klik history
                     div.onclick = () => { 
                         resultText.value = item.text; 
                         resultSection.style.display = 'block'; 
                         window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' }); 
                         updateStatus(`Memuat riwayat: ${item.name}`, 'info');
-                        showStats(item.text, item.conf); // Tampilkan ulang statistik
+                        showStats(item.text, item.conf); // Panggil fungsi Stats
                     };
                     
                     historyList.appendChild(div);
