@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR Pro - Stable Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OCR Pro - Mobile Responsive</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,17 +24,10 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 2px dashed #3298dc; border-radius: 12px; padding: 2.5rem;
             cursor: pointer; background-color: var(--upload-bg); transition: all 0.3s; width: 100%; box-sizing: border-box;
-            position: relative; /* Penting untuk klik */
+            position: relative;
         }
         .upload-zone:hover { background-color: rgba(50, 152, 220, 0.05); border-color: #205e8e; }
-        
-        /* Efek Drag & Drop */
-        .upload-zone.is-dragover {
-            background-color: rgba(72, 199, 116, 0.1) !important;
-            border-color: #48c774 !important;
-            transform: scale(1.02);
-        }
-
+        .upload-zone.is-dragover { background-color: rgba(72, 199, 116, 0.1) !important; border-color: #48c774 !important; transform: scale(1.02); }
         body.dark-mode .upload-zone:hover { background-color: rgba(50, 152, 220, 0.1); }
 
         .switch-wrapper { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -48,7 +41,32 @@
         .fade-in { animation: fadeIn 0.6s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #image-preview { max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); display: none; margin: 0 auto; }
-        .stats-tag { margin-right: 0.5rem; }
+        
+        .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; }
+
+        /* --- MOBILE RESPONSIVE TWEAKS (PENTING) --- */
+        @media screen and (max-width: 768px) {
+            .section { padding: 1.5rem 1rem; } /* Padding luar lebih kecil */
+            .box { padding: 1.25rem; } /* Padding dalam box lebih kecil */
+            
+            /* Header Title Kecil di HP biar gak nabrak tombol */
+            .title.is-4 { font-size: 1.1rem; } 
+            .tag.is-success { font-size: 0.7rem; }
+            
+            /* Upload Zone lebih compact */
+            .upload-zone { padding: 1.5rem; }
+            .upload-zone p.is-size-5 { font-size: 1rem !important; }
+
+            /* Footer (Stats & Download) jadi Susun Kebawah */
+            .level-right { margin-top: 1rem; }
+            #download-button { width: 100%; display: flex; justify-content: center; } /* Tombol Full Width */
+            
+            /* Stats Tags Rata Tengah */
+            #text-stats { display: flex; flex-wrap: wrap; justify-content: center; }
+            
+            /* Copy Button di kanan atas hasil */
+            #result-section .level { margin-bottom: 0.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -56,21 +74,20 @@
     <section class="section">
         <div class="container is-max-desktop">
             <div class="box shadow-lg fade-in">
-                <div class="level is-mobile mb-5 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                <div class="level is-mobile mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
                     <div class="level-left">
-                        <div>
-                            <p class="title is-4">
-                                <span class="icon-text has-text-info mr-2"><i class="fas fa-robot"></i></span>
-                                OCR Pro <span class="tag is-success is-light ml-2">Stable v5</span>
+                        <div style="max-width: 70vw;"> <p class="title is-4 is-flex is-align-items-center">
+                                <span class="icon mr-2 has-text-info"><i class="fas fa-robot"></i></span>
+                                <span>OCR Pro</span>
+                                <span class="tag is-success is-light ml-2" style="vertical-align: middle;">v6</span>
                             </p>
                         </div>
                     </div>
                     <div class="level-right">
-                        <div class="buttons are-small">
-                            <button id="reset-button" class="button is-rounded is-light" title="Reset">
+                        <div class="buttons are-small is-flex-wrap-nowrap"> <button id="reset-button" class="button is-rounded is-light" title="Reset">
                                 <span class="icon"><i class="fas fa-sync-alt"></i></span>
                             </button>
-                            <div class="ml-3" style="display:flex; align-items:center;">
+                            <div class="ml-2" style="display:flex; align-items:center;">
                                 <label class="switch-wrapper" title="Mode Gelap">
                                     <input type="checkbox" id="dark-mode-toggle">
                                     <span class="slider"></span>
@@ -80,7 +97,7 @@
                     </div>
                 </div>
 
-                <p class="subtitle is-6 has-text-grey mb-4">
+                <p class="subtitle is-6 has-text-grey mb-4 is-size-7-mobile">
                     Unggah gambar/PDF. Gunakan <span class="tag is-info is-light">Ctrl + V</span> untuk paste screenshot.
                 </p>
 
@@ -97,16 +114,16 @@
                     <img id="image-preview" src="#" alt="Preview" />
                 </div>
 
-                <div id="status-box" class="notification is-info is-light mt-5">
+                <div id="status-box" class="notification is-info is-light mt-5 is-size-7-mobile">
                     <div class="icon-text">
                         <span class="icon"><i class="fas fa-info-circle"></i></span>
                         <span id="status-text">Siap memproses dokumen...</span>
                     </div>
                 </div>
 
-                <div id="result-section" class="mt-6 fade-in" style="display: none;">
+                <div id="result-section" class="mt-5 fade-in" style="display: none;">
                     <div class="level is-mobile mb-2">
-                        <div class="level-left"><h3 class="title is-5 mb-0">Hasil Teks</h3></div>
+                        <div class="level-left"><h3 class="title is-5 is-size-6-mobile mb-0">Hasil Teks</h3></div>
                         <div class="level-right">
                             <button id="copy-button" class="button is-small is-link is-outlined is-rounded">
                                 <span class="icon"><i class="far fa-copy"></i></span>
@@ -119,12 +136,12 @@
                         <textarea id="result-text" class="textarea" readonly placeholder="Hasil akan muncul di sini..."></textarea>
                     </div>
 
-                    <div id="post-result-actions" class="level mt-4 is-mobile">
+                    <div id="post-result-actions" class="level mt-4">
                         <div class="level-left">
                             <div id="text-stats" class="tags"></div>
                         </div>
                         <div class="level-right">
-                            <button id="download-button" class="button is-primary is-small is-rounded shadow-sm">
+                            <button id="download-button" class="button is-primary is-rounded shadow-sm">
                                 <span class="icon"><i class="fas fa-download"></i></span>
                                 <span>Download .txt</span>
                             </button>
@@ -137,10 +154,8 @@
     </section>
 
     <script>
-        // Konfigurasi Worker PDF.js (WAJIB ADA)
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Element Selectors
         const uploader = document.getElementById('uploader');
         const dropZone = document.getElementById('drop-zone');
         const fileNameDisplay = document.getElementById('file-name');
@@ -159,22 +174,15 @@
         
         let currentFileName = 'hasil_ocr.txt';
 
-        // --- HANDLER KLIK & DRAG (FIXED) ---
-        // 1. Klik area -> Trigger input file
-        dropZone.addEventListener('click', () => {
-            uploader.click();
-        });
+        // --- HANDLER KLIK & DRAG ---
+        dropZone.addEventListener('click', () => uploader.click());
 
-        // 2. Drag & Drop Visual
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
             document.body.addEventListener(eventName, preventDefaults, false);
         });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
         
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => dropZone.classList.add('is-dragover'), false);
@@ -185,34 +193,27 @@
         
         dropZone.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
-            const files = dt.files;
-            if(files.length > 0) handleFile(files[0]);
+            if(dt.files.length > 0) handleFile(dt.files[0]);
         });
         
-        // 3. Input Change (Saat file dipilih dari dialog)
         uploader.addEventListener('change', (e) => {
             if(e.target.files.length > 0) handleFile(e.target.files[0]);
         });
-        // -----------------------------------
 
         // --- KAMUS PERBAIKAN TYPO ---
         const cleanOCRText = (text) => {
             let cleaned = text;
-            
             cleaned = cleaned.replace(/\b([CDE]):\s*[l|I|i|\|/]\s*/g, "$1:\\"); 
             cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*etc/gi, "Snort\\etc"); 
             cleaned = cleaned.replace(/Snort\s*[l|I|i|\|/]\s*bin/gi, "Snort\\bin"); 
             cleaned = cleaned.replace(/C\s*[l|I|i|\|/]\s*Snort/gi, "C:\\Snort"); 
-            
             cleaned = cleaned.replace(/fi\\e/g, "file");   
             cleaned = cleaned.replace(/ru\\es/g, "rules"); 
             cleaned = cleaned.replace(/ru\|es/g, "rules"); 
             cleaned = cleaned.replace(/modu\\/g, "modul"); 
             cleaned = cleaned.replace(/KONFIGURAS\\/g, "KONFIGURASI"); 
-
             cleaned = cleaned.replace(/([a-z])1([a-z])/g, "$1l$2"); 
             cleaned = cleaned.replace(/([a-z])0([a-z])/g, "$1o$2"); 
-            
             cleaned = cleaned.replace(/SNCRT/gi, "SNORT");
             cleaned = cleaned.replace(/snert/gi, "snort");
             cleaned = cleaned.replace(/1D5/g, "IDS");
@@ -221,13 +222,12 @@
             cleaned = cleaned.replace(/so\s+ru\\es/gi, "so_rules"); 
             cleaned = cleaned.replace(/so\s+rules/gi, "so_rules");  
             cleaned = cleaned.replace(/preproc\s*rules/gi, "preproc_rules");
-
             return cleaned;
         };
 
         const updateStatus = (message, type = 'info') => {
             statusText.textContent = message;
-            statusBox.className = 'notification mt-5'; statusIcon.className = '';
+            statusBox.className = 'notification mt-5 is-size-7-mobile'; statusIcon.className = '';
             const types = { 
                 info: ['is-info', 'is-light', 'fa-info-circle'], 
                 success: ['is-success', 'is-light', 'fa-check-circle'], 
