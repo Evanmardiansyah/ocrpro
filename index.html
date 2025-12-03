@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCR Pro - Color Safe v17</title>
+    <title>OCR Pro - Smart AI Edition</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,6 +12,8 @@
     <script src='https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         /* --- Style Dasar & Dark Mode --- */
@@ -39,27 +41,29 @@
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #48c774; }
         input:checked + .slider:before { transform: translateX(18px); }
-        
         .slider.orange-slider { background-color: #ccc; }
         input:checked + .slider.orange-slider { background-color: #ff9f43; }
 
+        /* Icon next to switch */
         .control-icon { font-size: 1rem; color: #b5b5b5; margin-right: 6px; vertical-align: middle; }
         body.dark-mode .control-icon { color: #666; }
         .control-item { display: flex; align-items: center; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid transparent; }
         body.dark-mode .control-item { background: rgba(255,255,255,0.05); }
 
+        /* Result Text Area */
         #result-text { min-height: 200px; max-height: 600px; font-family: 'Consolas', monospace; font-size: 0.9em; background-color: var(--bg-color); color: var(--text-color); border-color: var(--border-color); }
         .fade-in { animation: fadeIn 0.6s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #image-preview { max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); display: none; margin: 0 auto; }
         
-        .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-flex; align-items: center; }
-        
+        /* Stats & History */
+        .stats-tag { margin-right: 0.5rem; margin-bottom: 0.5rem; }
         .history-item { border-left: 4px solid #3298dc; cursor: pointer; transition: all 0.2s; }
         .history-item:hover { transform: translateX(5px); }
         .history-date { font-size: 0.75rem; color: #888; }
         body.dark-mode .history-item { background-color: #3a3b3c; color: #e0e0e0; border-color: #48c774; }
 
+        /* Cropper */
         .cropper-container-box { height: 400px; background-color: #333; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
         #cropper-image { max-width: 100%; display: block; }
         
@@ -69,22 +73,40 @@
             display: inline-flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* --- MOBILE SPECIFIC FIXES --- */
+        /* --- STYLE KHUSUS DONASI --- */
+        .support-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 1rem; }
+        .btn-donate { transition: all 0.3s; border: none !important; color: white !important; font-weight: 600; }
+        .btn-saweria { background-color: #f1c40f !important; color: #4a4a4a !important; }
+        .btn-saweria:hover { background-color: #d4ac0d !important; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.4); transform: translateY(-2px); }
+        .btn-trakteer { background-color: #e74c3c !important; }
+        .btn-trakteer:hover { background-color: #c0392b !important; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); transform: translateY(-2px); }
+
+        /* --- STYLE TOMBOL EXPORT --- */
+        .export-group .button { margin-bottom: 5px; }
+
+        /* --- MOBILE SPECIFIC FIXES (UPDATED) --- */
         @media screen and (max-width: 768px) {
             .section { padding: 1.25rem 0.75rem; }
             .box { padding: 1rem; }
-            .title.is-4 { font-size: 1rem; margin-bottom: 0 !important; }
+            
+            /* Fix Header Spacing: Biar Reset gak nyatu sama Logo */
+            .level.is-mobile { gap: 10px; } 
+            
+            .title.is-4 { font-size: 1rem; margin-bottom: 0 !important; white-space: nowrap; }
             .tag.is-success { display: none; }
             .control-item { padding: 2px 6px; margin-left: 4px !important; }
             .control-icon { font-size: 0.9rem; margin-right: 4px; }
             .switch-wrapper { width: 34px; height: 18px; }
             .slider:before { height: 14px; width: 14px; left: 2px; bottom: 2px; }
             input:checked + .slider:before { transform: translateX(16px); }
+            
             .upload-zone { padding: 1.5rem; }
             .upload-zone p.is-size-5 { font-size: 0.95rem !important; }
-            .level-right { margin-top: 1rem; }
-            #download-button { width: 100%; display: flex; justify-content: center; }
-            #text-stats { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; }
+            .level-right { margin-top: 0; } /* Reset margin di mobile level */
+            
+            .export-group { display: flex; flex-direction: column; width: 100%; }
+            .export-group .button { width: 100%; margin-right: 0 !important; margin-bottom: 8px; }
+            #text-stats { display: flex; flex-wrap: wrap; justify-content: center; }
             .cropper-container-box { height: 300px; }
         }
     </style>
@@ -95,9 +117,9 @@
         <div class="container is-max-desktop">
             <div class="box shadow-lg fade-in">
                 
-                <div class="level is-mobile mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                <div class="level is-mobile mb-4 pb-3" style="border-bottom: 1px solid var(--border-color); align-items: center;">
                     <div class="level-left">
-                        <div style="max-width: 45vw;">
+                        <div style="max-width: 50vw;">
                             <p class="title is-4 is-flex is-align-items-center">
                                 <span class="icon mr-2 has-text-info"><i class="fas fa-robot"></i></span>
                                 <span>OCR Pro</span>
@@ -123,7 +145,7 @@
                                 </label>
                             </div>
 
-                            <button id="reset-button" class="button is-small is-rounded is-light ml-2" title="Reset">
+                            <button id="reset-button" class="button is-small is-rounded is-light ml-3" title="Reset">
                                 <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
                             </button>
 
@@ -145,7 +167,7 @@
                 </div>
 
                 <div id="preview-section" class="block has-text-centered mt-4" style="display: none;">
-                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Color Safe Mode</div>
+                    <div class="auto-fix-badge mb-2"><i class="fas fa-magic mr-2"></i> Auto-Enhanced Active</div>
                     <br>
                     <img id="image-preview" src="#" alt="Preview" />
                 </div>
@@ -172,13 +194,22 @@
                         <textarea id="result-text" class="textarea" readonly placeholder="Hasil akan muncul di sini..."></textarea>
                     </div>
 
-                    <div id="post-result-actions" class="level mt-4">
-                        <div class="level-left">
-                            <div id="text-stats" class="tags"></div> </div>
-                        <div class="level-right">
-                            <button id="download-button" class="button is-primary is-rounded shadow-sm">
-                                <span class="icon"><i class="fas fa-download"></i></span>
-                                <span>Download .txt</span>
+                    <div id="post-result-actions" class="level mt-4 is-flex-wrap-wrap">
+                        <div class="level-left mb-2">
+                            <div id="text-stats" class="tags"></div>
+                        </div>
+                        <div class="level-right export-group">
+                            <button onclick="exportToTxt()" class="button is-small is-primary is-rounded mr-1 shadow-sm">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> <span>TXT</span>
+                            </button>
+                            <button onclick="exportToWord()" class="button is-small is-info is-light is-rounded mr-1 shadow-sm">
+                                <span class="icon"><i class="fas fa-file-word"></i></span> <span>Word</span>
+                            </button>
+                            <button onclick="exportToPDF()" class="button is-small is-danger is-light is-rounded mr-1 shadow-sm">
+                                <span class="icon"><i class="fas fa-file-pdf"></i></span> <span>PDF</span>
+                            </button>
+                            <button onclick="exportToExcel()" class="button is-small is-success is-light is-rounded shadow-sm">
+                                <span class="icon"><i class="fas fa-file-excel"></i></span> <span>Excel</span>
                             </button>
                         </div>
                     </div>
@@ -194,6 +225,23 @@
                         </div>
                     </div>
                     <div id="history-list"></div>
+                </div>
+
+                <div id="support-section" class="mt-6 p-5 has-text-centered" style="border-top: 1px solid var(--border-color); background-color: rgba(0,0,0,0.015); border-radius: 8px;">
+                    <h4 class="title is-6 mb-3"><i class="fas fa-heart has-text-danger"></i> Dukung Karya Saya</h4>
+                    <p class="is-size-6 mb-4 has-text-grey-dark" style="font-style: italic;">
+                        "Server gratisan tapi kopi bayar sendiri. Bantu developer tetap melek? Klik di bawah!" 😎
+                    </p>
+                    <div class="support-buttons">
+                        <a href="https://saweria.co/USERNAME_KAMU" target="_blank" class="button btn-saweria btn-donate">
+                            <span class="icon"><i class="fas fa-coffee"></i></span>
+                            <span>Saweria</span>
+                        </a>
+                        <a href="https://trakteer.id/USERNAME_KAMU" target="_blank" class="button btn-trakteer btn-donate">
+                            <span class="icon"><i class="fas fa-gift"></i></span>
+                            <span>Trakteer</span>
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -215,8 +263,13 @@
                 <div class="buttons is-centered mt-4">
                     <button class="button is-small is-rounded" onclick="rotateImage(-90)" title="Putar Kiri"><span class="icon"><i class="fas fa-undo"></i></span></button>
                     <button class="button is-small is-rounded" onclick="rotateImage(90)" title="Putar Kanan"><span class="icon"><i class="fas fa-redo"></i></span></button>
-                    <button class="button is-small is-rounded is-danger is-light" onclick="resetCropper()" title="Reset"><span class="icon"><i class="fas fa-sync"></i></span> Reset</button>
+                    
+                    <button class="button is-small is-rounded is-danger is-light" onclick="resetCropper()" title="Reset">
+                        <span class="icon mr-1"><i class="fas fa-sync"></i></span> Reset
+                    </button>
+
                 </div>
+                <p class="has-text-centered is-size-7 has-text-grey mt-2"><i class="fas fa-magic has-text-info"></i> Auto-Enhance Aktif</p>
             </section>
             <footer class="modal-card-foot is-justify-content-flex-end">
                 <button class="button" id="cancel-crop">Batal</button>
@@ -242,7 +295,6 @@
         const resultSection = document.getElementById('result-section');
         const resultText = document.getElementById('result-text');
         const copyButton = document.getElementById('copy-button');
-        const downloadButton = document.getElementById('download-button');
         const resetButton = document.getElementById('reset-button');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         const editorModeToggle = document.getElementById('editor-mode-toggle');
@@ -299,7 +351,7 @@
             }
         }
 
-        // --- FUNGSI MODAL ---
+        // --- FUNGSI MODAL CROPPER ---
         function openCropperModal(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -333,7 +385,7 @@
             }, 'image/png');
         };
 
-        // --- CORE OCR ---
+        // --- FUNGSI UTAMA OCR & PDF ---
         const cleanOCRText = (text) => {
             let cleaned = text;
             cleaned = cleaned.replace(/\b([CDE]):\s*[l|I|i|\|/]\s*/g, "$1:\\"); 
@@ -361,55 +413,76 @@
 
         const resetUI = () => {
             resultSection.style.display = 'none'; previewSection.style.display = 'none';
-            resultText.value = ''; textStats.innerHTML = '';
+            resultText.value = ''; 
             updateStatus('Siap memproses dokumen...', 'info');
         };
+
+        // --- UPDATE STATS UI ---
+        function updateStatsUI(text, conf) {
+            let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
+            textStats.innerHTML = `<span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${text.length} Karakter</span> <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>`;
+        }
 
         function finishProcessing(result) {
             const txt = result.text || "Tidak ada teks.";
             const conf = Math.round(result.confidence || 0);
-            resultText.value = txt; resultSection.style.display = 'block';
+            resultText.value = txt; 
+            resultSection.style.display = 'block';
             updateStatus('Selesai!', 'success');
             saveToHistory(currentFileName, txt, conf);
-            showStats(txt, conf); // FIX: Panggil showStats terpisah
+            updateStatsUI(txt, conf);
         }
         
-        // FUNGSI BARU: Render Stats agar konsisten
-        function showStats(txt, conf) {
-            let confColor = conf > 85 ? 'is-success' : (conf > 60 ? 'is-warning' : 'is-danger');
-            textStats.innerHTML = `
-                <span class="tag is-light stats-tag"><i class="fas fa-font mr-1"></i> ${txt.length} Karakter</span> 
-                <span class="tag ${confColor} is-light stats-tag"><i class="fas fa-bullseye mr-1"></i> ${conf}%</span>
-            `;
-        }
-
         function handleError(e) { updateStatus(`Error: ${e.message}`, 'error'); console.error(e); }
 
+        // --- SMART PROCESS IMAGE ---
         const processImage = async (blobFile) => {
-            updateStatus('Meningkatkan kualitas...', 'loading');
+            updateStatus('Optimasi Gambar (Smart Contrast)...', 'loading');
+            
             let imgSource = blobFile;
             if (blobFile instanceof File || blobFile instanceof Blob) { imgSource = URL.createObjectURL(blobFile); }
-            const img = new Image(); img.src = imgSource; await new Promise(r => img.onload = r);
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            const scale = 2.5; canvas.width = img.width * scale; canvas.height = img.height * scale;
-            ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // --- FIX: SMART GRAYSCALE (Tanpa Threshold Kasar) ---
+            const img = new Image(); 
+            img.src = imgSource; 
+            await new Promise(r => img.onload = r);
+            
+            const canvas = document.createElement('canvas'); 
+            const ctx = canvas.getContext('2d');
+            
+            const scale = 3; 
+            canvas.width = img.width * scale; 
+            canvas.height = img.height * scale;
+            
+            ctx.imageSmoothingEnabled = false; 
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
             const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             const data = imageData.data;
-            for(let i=0; i<data.length; i+=4){ 
-                // Rumus Luminosity (Manusiawi)
-                const gray = (0.299 * data[i]) + (0.587 * data[i+1]) + (0.114 * data[i+2]);
-                // Naikkan kontras sedikit (10%) tanpa memaksa hitam/putih
-                const contrastFactor = 1.1; 
-                const newColor = ((gray - 128) * contrastFactor) + 128;
-                
-                data[i] = newColor; data[i+1] = newColor; data[i+2] = newColor; 
+            
+            let totalBrightness = 0;
+            for(let i=0; i<data.length; i+=4){
+                totalBrightness += (data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114);
             }
+            const avgBrightness = totalBrightness / (data.length / 4);
+            const isDarkMode = avgBrightness < 128; 
+
+            for(let i=0; i<data.length; i+=4){ 
+                let gray = (data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114);
+                if(isDarkMode) gray = 255 - gray;
+                gray = (gray - 128) * 1.5 + 128; 
+                if(gray < 0) gray = 0; if(gray > 255) gray = 255;
+                data[i] = gray; data[i+1] = gray; data[i+2] = gray; 
+            }
+            
             ctx.putImageData(imageData, 0, 0);
             
-            const worker = await Tesseract.createWorker('ind+eng', 1, { logger: m => m.status === 'recognizing text' && updateStatus(`Membaca: ${(m.progress * 100).toFixed(0)}%`, 'loading') });
-            const { data: res } = await worker.recognize(canvas); await worker.terminate();
+            const worker = await Tesseract.createWorker('ind+eng', 1, { 
+                logger: m => m.status === 'recognizing text' && updateStatus(`Membaca: ${(m.progress * 100).toFixed(0)}%`, 'loading') 
+            });
+            await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+            const { data: res } = await worker.recognize(canvas); 
+            await worker.terminate();
+            
             return { text: cleanOCRText(res.text), confidence: res.confidence };
         };
 
@@ -449,13 +522,12 @@
                     div.className = 'notification is-light mb-2 p-3 history-item';
                     div.innerHTML = `<div class="is-flex is-justify-content-space-between"><strong>${item.name}</strong><span class="tag is-small ${item.conf > 80 ? 'is-success' : 'is-warning'} is-light">${item.conf}%</span></div><p class="is-size-7 has-text-grey-light is-family-monospace mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.text.substring(0, 60)}...</p><div class="history-date mt-1">${item.date}</div>`;
                     
-                    // FIX: Tampilkan Stats saat klik history
                     div.onclick = () => { 
                         resultText.value = item.text; 
                         resultSection.style.display = 'block'; 
                         window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' }); 
                         updateStatus(`Memuat riwayat: ${item.name}`, 'info');
-                        showStats(item.text, item.conf); // Panggil fungsi Stats
+                        updateStatsUI(item.text, item.conf);
                     };
                     
                     historyList.appendChild(div);
@@ -463,9 +535,45 @@
             } else historySection.style.display = 'none';
         }
 
+        // --- FUNGSI EXPORT ---
+        function exportToTxt() {
+            const blob = new Blob([resultText.value], {type:'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'hasil_ocr.txt';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const text = resultText.value;
+            const splitText = doc.splitTextToSize(text, 180); 
+            doc.setFontSize(10); doc.text(splitText, 10, 10);
+            doc.save('ocr_result.pdf');
+        }
+
+        function exportToWord() {
+            const text = resultText.value.replace(/\n/g, "<br>");
+            const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title><style>body{font-family:'Calibri','Arial',sans-serif;font-size:11pt;line-height:1.5;color:#000000;}p{margin:0;padding:0;}</style></head><body>`;
+            const footer = "</body></html>";
+            const sourceHTML = header + text + footer;
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            const fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload); fileDownload.href = source; fileDownload.download = 'hasil_ocr.doc';
+            fileDownload.click(); document.body.removeChild(fileDownload);
+        }
+
+        function exportToExcel() {
+            const text = resultText.value;
+            const rows = text.split('\n').map(line => [line]);
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "OCR Data");
+            XLSX.writeFile(wb, "ocr_result.xlsx");
+        }
+
         clearHistoryBtn.addEventListener('click', () => { if(confirm('Hapus semua riwayat scan?')) { localStorage.removeItem('ocrHistory'); loadHistory(); }});
         copyButton.addEventListener('click', () => { resultText.select(); navigator.clipboard.writeText(resultText.value).then(() => { const icon = copyButton.querySelector('i'); const txt = document.getElementById('copy-text'); copyButton.className='button is-small is-success is-rounded'; icon.className='fas fa-check'; txt.textContent='Tersalin'; setTimeout(() => { copyButton.className='button is-small is-link is-outlined is-rounded'; icon.className='far fa-copy'; txt.textContent='Salin'; }, 2000); }); });
-        downloadButton.addEventListener('click', () => { const blob = new Blob([resultText.value], {type:'text/plain'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hasil_ocr.txt'; document.body.appendChild(a); a.click(); document.body.removeChild(a); });
         resetButton.addEventListener('click', () => { uploader.value = ''; fileNameDisplay.textContent = 'Belum ada file dipilih'; resetUI(); });
         
         const toggleDarkMode = (isDark) => { if (isDark) { document.body.classList.add('dark-mode'); darkModeToggle.checked = true; } else { document.body.classList.remove('dark-mode'); darkModeToggle.checked = false; } };
@@ -477,4 +585,4 @@
         if(savedEditor !== null) editorModeToggle.checked = (savedEditor === 'true');
     </script>
 </body>
-    </html>
+</html>
